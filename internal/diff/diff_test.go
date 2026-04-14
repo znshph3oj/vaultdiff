@@ -81,6 +81,20 @@ func TestCompare_UnchangedKey(t *testing.T) {
 	}
 }
 
+func TestCompare_EmptyMaps(t *testing.T) {
+	from := map[string]interface{}{}
+	to := map[string]interface{}{}
+
+	result := Compare("secret/empty", 1, 2, from, to)
+
+	if result.HasChanges() {
+		t.Error("expected no changes for two empty maps")
+	}
+	if len(result.Changes) != 0 {
+		t.Errorf("expected 0 changes, got %d", len(result.Changes))
+	}
+}
+
 func TestMaskValue(t *testing.T) {
 	masked := MaskValue("supersecret")
 	if masked != "********" {
