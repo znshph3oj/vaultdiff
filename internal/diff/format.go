@@ -16,9 +16,17 @@ const (
 
 // FormatOptions controls output rendering.
 type FormatOptions struct {
-	Color  bool
-	Mask   bool
+	Color         bool
+	Mask          bool
 	ShowUnchanged bool
+}
+
+// colorize wraps text with the given ANSI color code if color is enabled.
+func colorize(text, color string, enabled bool) string {
+	if !enabled {
+		return text
+	}
+	return color + text + colorReset
 }
 
 // Render writes a human-readable diff to the given writer.
@@ -38,10 +46,7 @@ func Render(w io.Writer, result *Result, opts FormatOptions) {
 				val = MaskValue(val)
 			}
 			line := fmt.Sprintf("+ %-24s %s", c.Key, val)
-			if opts.Color {
-				line = colorGreen + line + colorReset
-			}
-			fmt.Fprintln(w, line)
+			fmt.Fprintln(w, colorize(line, colorGreen, opts.Color))
 
 		case Removed:
 			val := c.OldValue
@@ -49,10 +54,7 @@ func Render(w io.Writer, result *Result, opts FormatOptions) {
 				val = MaskValue(val)
 			}
 			line := fmt.Sprintf("- %-24s %s", c.Key, val)
-			if opts.Color {
-				line = colorRed + line + colorReset
-			}
-			fmt.Fprintln(w, line)
+			fmt.Fprintln(w, colorize(line, colorRed, opts.Color))
 
 		case Modified:
 			oldVal, newVal := c.OldValue, c.NewValue
@@ -61,17 +63,11 @@ func Render(w io.Writer, result *Result, opts FormatOptions) {
 				newVal = MaskValue(newVal)
 			}
 			line := fmt.Sprintf("~ %-24s %s → %s", c.Key, oldVal, newVal)
-			if opts.Color {
-				line = colorYellow + line + colorReset
-			}
-			fmt.Fprintln(w, line)
+			fmt.Fprintln(w, colorize(line, colorYellow, opts.Color))
 
 		case Unchanged:
 			line := fmt.Sprintf("  %-24s (unchanged)", c.Key)
-			if opts.Color {
-				line = colorGray + line + colorReset
-			}
-			fmt.Fprintln(w, line)
+			fmt.Fprintln(w, colorize(line, colorGray, opts.Color))
 		}
 	}
 }
