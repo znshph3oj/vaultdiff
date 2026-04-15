@@ -8,82 +8,68 @@ import (
 )
 
 func TestNewReport_SummarizesChanges(t *testing.T) {
-	results := []DiffResult{
-		{Key: "FOO", Status: StatusAdded, NewValue: "bar"},
-		{Key: "BAZ", Status: StatusRemoved, OldValue: "old"},
-		{Key: "QUX", Status: StatusModified, OldValue: "a", NewValue: "b"},
-		{Key: "SAME", Status: StatusUnchanged, OldValue: "x", NewValue: "x"},
+	changes := []DiffResult{
+		{Key: "a", Status: StatusAdded},
+		{Key: "b", Status: StatusRemoved},
+		{Key: "c", Status: StatusModified},
+		{Key: "d", Status: StatusUnchanged},
+		{Key: "e", Status: StatusAdded},
 	}
-
-	report := NewReport("secret/myapp", 1, 2, results)
-
-	if report.Summary.Added != 1 {
-		t.Errorf("expected 1 added, got %d", report.Summary.Added)
+	r := NewReport("secret/data/app", 1, 2, changes)
+	if r.Added != 2 {
+		t.Errorf("expected Added=2, got %d", r.Added)
 	}
-	if report.Summary.Removed != 1 {
-		t.Errorf("expected 1 removed, got %d", report.Summary.Removed)
+	if r.Removed != 1 {
+		t.Errorf("expected Removed=1, got %d", r.Removed)
 	}
-	if report.Summary.Modified != 1 {
-		t.Errorf("expected 1 modified, got %d", report.Summary.Modified)
+	if r.Modified != 1 {
+		t.Errorf("expected Modified=1, got %d", r.Modified)
 	}
-	if report.Summary.Unchanged != 1 {
-		t.Errorf("expected 1 unchanged, got %d", report.Summary.Unchanged)
+	if r.Unchanged != 1 {
+		t.Errorf("expected Unchanged=1, got %d", r.Unchanged)
 	}
 }
 
 func TestNewReport_MetadataIsSet(t *testing.T) {
-	report := NewReport("secret/myapp", 3, 5, nil)
-
-	if report.Path != "secret/myapp" {
-		t.Errorf("unexpected path: %s", report.Path)
+	r := NewReport("secret/data/app", 3, 4, nil)
+	if r.Path != "secret/data/app" {
+		t.Errorf("unexpected path: %s", r.Path)
 	}
-	if report.VersionA != 3 || report.VersionB != 5 {
-		t.Errorf("unexpected versions: %d, %d", report.VersionA, report.VersionB)
+	if r.FromVersion != 3 || r.ToVersion != 4 {
+		t.Errorf("unexpected versions: %d %d", r.FromVersion, r.ToVersion)
 	}
-	if report.Timestamp.IsZero() {
-		t.Error("expected non-zero timestamp")
+	if r.GeneratedAt.IsZero() {
+		t.Error("GeneratedAt should not be zero")
 	}
 }
 
 func TestReport_WriteJSON(t *testing.T) {
-	report := NewReport("secret/myapp", 1, 2, []DiffResult{
-		{Key: "TOKEN", Status: StatusModified, OldValue: "old", NewValue: "new"},
-	})
-
+	changes := []DiffResult{{Key: "token", Status: StatusModified, OldValue: "x", NewValue: "y"}}
+	r := NewReport("secret/data/svc", 1, 2, changes)
 	var buf bytes.Buffer
-	if err := report.WriteJSON(&buf); err != nil {
-		t.Fatalf("WriteJSON returned error: %v", err)
+	if err := r.WriteJSON(&buf); err != nil {
+		t.Fatalf("WriteJSON error: %v", err)
 	}
-
-	var decoded Report
-	if err := json.Unmarshal(buf.Bytes(), &decoded); err != nil {
-		t.Fatalf("failed to decode JSON output: %v", err)
+	var out map[string]interface{}
+	if err := json.Unmarshal(buf.Bytes(), &out); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
 	}
-	if decoded.Path != "secret/myapp" {
-		t.Errorf("unexpected decoded path: %s", decoded.Path)
-	}
-	if len(decoded.Changes) != 1 {
-		t.Errorf("expected 1 change, got %d", len(decoded.Changes))
+	if out["path"] != "secret/data/svc" {
+		t.Errorf("unexpected path in JSON: %v", out["path"])
 	}
 }
 
 func TestReport_PrintSummary(t *testing.T) {
-	report := NewReport("secret/myapp", 1, 2, []DiffResult{
-		{Key: "A", Status: StatusAdded},
-		{Key: "B", Status: StatusRemoved},
+	r := NewReport("secret/data/db", 2, 3, []DiffResult{
+		{Key: "pass", Status: StatusModified},
 	})
-
 	var buf bytes.Buffer
-	report.PrintSummary(&buf)
+	r.PrintSummary(&buf)
 	out := buf.String()
-
-	if !strings.Contains(out, "secret/myapp") {
-		t.Errorf("summary missing path, got: %s", out)
+	if !strings.Contains(out, "secret/data/db") {
+		t.Error("summary should contain path")
 	}
-	if !strings.Contains(out, "+1 added") {
-		t.Errorf("summary missing added count, got: %s", out)
-	}
-	if !strings.Contains(out, "-1 removed") {
-		t.Errorf("summary missing removed count, got: %s", out)
+	if !strings.Contains(out, "Modified: 1") {
+		t.Error("summary should contain modified count")
 	}
 }
