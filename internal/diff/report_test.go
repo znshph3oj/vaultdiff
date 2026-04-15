@@ -43,6 +43,19 @@ func TestNewReport_MetadataIsSet(t *testing.T) {
 	}
 }
 
+func TestNewReport_NilChanges(t *testing.T) {
+	// Ensure NewReport handles a nil changes slice without panicking and
+	// reports zero counts for all statuses.
+	r := NewReport("secret/data/empty", 1, 2, nil)
+	if r.Added != 0 || r.Removed != 0 || r.Modified != 0 || r.Unchanged != 0 {
+		t.Errorf("expected all zero counts for nil changes, got added=%d removed=%d modified=%d unchanged=%d",
+			r.Added, r.Removed, r.Modified, r.Unchanged)
+	}
+	if len(r.Changes) != 0 {
+		t.Errorf("expected empty Changes slice, got %d entries", len(r.Changes))
+	}
+}
+
 func TestReport_WriteJSON(t *testing.T) {
 	changes := []DiffResult{{Key: "token", Status: StatusModified, OldValue: "x", NewValue: "y"}}
 	r := NewReport("secret/data/svc", 1, 2, changes)
