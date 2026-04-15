@@ -3,60 +3,78 @@ package audit
 import (
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"text/tabwriter"
-
-	"github.com/yourusername/vaultdiff/internal/diff"
 )
 
-// PathStat holds aggregated change counts for a single secret path.
-type PathStat struct {
-	Path     string
-	Added    int
-	Removed  int
-	Modified int
-	Diffs    int // total diff operations recorded
+// Summary holds aggregated statistics over a slice of audit entries.
+type Summary struct {
+	TotalEvents  int
+	ByUser       map[string]int
+	ByPath       map[string]int
+	ByOperation  map[string]int
 }
 
-// Summarize aggregates entries by path and returns stats sorted by path.
-func Summarize(entries []Entry) []PathStat {
-	m := make(map[string]*PathStat)
+// Summarize aggregates the provided entries into a Summary.
+func Summarize(entries []Entry) Summary {
+	s := Summary{
+		ByUser:      make(map[string]int),
+		ByPath:      make(map[string]int),
+		ByOperation: make(map[string]int),
+	}
 	for _, e := range entries {
-		s, ok := m[e.Path]
-		if !ok {
-			s = &PathStat{Path: e.Path}
-			m[e.Path] = s
+		s.TotalEvents++
+		if e.User != "" {
+			s.ByUser[e.User]++
 		}
-		s.Diffs++
-		for _, c := range e.Changes {
-			switch c.Type {
-			case diff.Added:
-				s.Added++
-			case diff.Removed:
-				s.Removed++
-			case diff.Modified:
-				s.Modified++
-			}
+		if e.Path != "" {
+			s.ByPath[e.Path]++
+		}
+		if e.Operation != "" {
+			s.ByOperation[e.Operation]++
 		}
 	}
-
-	stats := make([]PathStat, 0, len(m))
-	for _, s := range m {
-		stats = append(stats, *s)
-	}
-	sort.Slice(stats, func(i, j int) bool {
-		return stats[i].Path < stats[j].Path
-	})
-	return stats
+	return s
 }
 
-// PrintSummary writes a human-readable table of PathStats to w.
-func PrintSummary(w io.Writer, stats []PathStat) {
+// PrintSummary writes a human-readable summary table to w.
+// If w is nil, os.Stdout is used.
+func PrintSummary(s Summary, w io.Writer) {
+	if w == nil {
+		w = os.Stdout
+	}
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "PATH\tDIFFS\tADDED\tREMOVED\tMODIFIED")
-	for _, s := range stats {
-		fmt.Fprintf(tw, "%s\t%d\t%d\t%d\t%d\n",
-			s.Path, s.Diffs, s.Added, s.Removed, s.Modified)
+	fmt.Fprintf(tw, "Total events:\t%d\n", s.TotalEvents)
+
+	if len(s.ByUser) > 0 {
+		fmt.Fprintln(tw, "\nEvents by user:")
+		for _, u := range sortedKeys(s.ByUser) {
+			fmt.Fprintf(tw, "  %s\t%d\n", u, s.ByUser[u])
+		}
+	}
+
+	if len(s.ByPath) > 0 {
+		fmt.Fprintln(tw, "\nEvents by path:")
+		for _, p := range sortedKeys(s.ByPath) {
+			fmt.Fprintf(tw, "  %s\t%d\n", p, s.ByPath[p])
+		}
+	}
+
+	if len(s.ByOperation) > 0 {
+		fmt.Fprintln(tw, "\nEvents by operation:")
+		for _, op := range sortedKeys(s.ByOperation) {
+			fmt.Fprintf(tw, "  %s\t%d\n", op, s.ByOperation[op])
+		}
 	}
 	tw.Flush()
+}
+
+func sortedKeys(m map[string]int) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
