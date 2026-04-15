@@ -3,6 +3,7 @@ package vault
 import (
 	"fmt"
 	"sort"
+	"strconv"
 )
 
 // VersionMeta holds metadata about a single secret version.
@@ -36,12 +37,16 @@ func (c *Client) ListVersions(path string) ([]VersionMeta, error) {
 	}
 
 	var metas []VersionMeta
-	for _, v := range versionsMap {
+	for k, v := range versionsMap {
 		entry, ok := v.(map[string]interface{})
 		if !ok {
 			continue
 		}
 		meta := VersionMeta{}
+		// Use the map key as the version number directly when available.
+		if vnum, err := strconv.Atoi(k); err == nil {
+			meta.Version = vnum
+		}
 		if ct, ok := entry["created_time"].(string); ok {
 			meta.CreatedTime = ct
 		}
@@ -54,13 +59,10 @@ func (c *Client) ListVersions(path string) ([]VersionMeta, error) {
 		metas = append(metas, meta)
 	}
 
-	// Assign version numbers by sorted insertion order.
+	// Sort by version number ascending.
 	sort.Slice(metas, func(i, j int) bool {
-		return metas[i].CreatedTime < metas[j].CreatedTime
+		return metas[i].Version < metas[j].Version
 	})
-	for i := range metas {
-		metas[i].Version = i + 1
-	}
 
 	return metas, nil
 }
