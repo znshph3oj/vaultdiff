@@ -78,3 +78,21 @@ func (c *Client) GetSecretVersion(ctx context.Context, path string, version int)
 		Metadata: meta,
 	}, nil
 }
+
+// ListSecretVersions returns the metadata for all versions of a KV v2 secret,
+// including version numbers, creation times, and deletion status.
+func (c *Client) ListSecretVersions(ctx context.Context, path string) (map[string]interface{}, error) {
+	logical := c.api.Logical()
+	secret, err := logical.ReadWithContext(ctx,
+		fmt.Sprintf("%s/metadata/%s", c.Mount, path),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("reading metadata for secret %q: %w", path, err)
+	}
+	if secret == nil || secret.Data == nil {
+		return nil, fmt.Errorf("no metadata found for secret %q", path)
+	}
+
+	versions, _ := secret.Data["versions"].(map[string]interface{})
+	return versions, nil
+}
