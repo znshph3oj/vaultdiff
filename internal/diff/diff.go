@@ -42,6 +42,23 @@ func (r *Result) HasChanges() bool {
 	return false
 }
 
+// Summary returns a brief string describing the number of additions,
+// removals, and modifications in the result.
+func (r *Result) Summary() string {
+	var added, removed, modified int
+	for _, c := range r.Changes {
+		switch c.Type {
+		case Added:
+			added++
+		case Removed:
+			removed++
+		case Modified:
+			modified++
+		}
+	}
+	return fmt.Sprintf("+%d -%d ~%d", added, removed, modified)
+}
+
 // Compare computes the diff between two secret data maps.
 func Compare(path string, fromVersion, toVersion int, from, to map[string]interface{}) *Result {
 	result := &Result{
