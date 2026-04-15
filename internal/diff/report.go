@@ -44,6 +44,12 @@ func NewReport(path string, from, to int, changes []DiffResult) *Report {
 	return r
 }
 
+// HasChanges reports whether the report contains any added, removed, or
+// modified keys — i.e. whether the two versions differ at all.
+func (r *Report) HasChanges() bool {
+	return r.Added > 0 || r.Removed > 0 || r.Modified > 0
+}
+
 // WriteJSON serialises the report as JSON to w.
 func (r *Report) WriteJSON(w io.Writer) error {
 	enc := json.NewEncoder(w)
