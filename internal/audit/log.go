@@ -2,57 +2,56 @@ package audit
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"time"
-
-	"github.com/yourusername/vaultdiff/internal/diff"
 )
 
 // Entry represents a single audit log record.
 type Entry struct {
-	Timestamp time.Time        `json:"timestamp"`
-	Path      string           `json:"path"`
-	FromVersion int            `json:"from_version"`
-	ToVersion   int            `json:"to_version"`
-	Changes   []diff.Change    `json:"changes"`
-	User      string           `json:"user,omitempty"`
+	Timestamp time.Time         `json:"timestamp"`
+	User      string            `json:"user"`
+	Operation string            `json:"operation"`
+	Path      string            `json:"path"`
+	Data      map[string]string `json:"data,omitempty"`
 }
 
-// Logger writes audit entries to an output sink.
+// Logger writes audit entries as newline-delimited JSON.
 type Logger struct {
-	w io.Writer
+	w.Writer
 }
 
-// NewLogger creates a Logger writing to w.
-// Pass nil to use os.Stdout.
+// NewLogger returns a Logger writing to the given writer.
 func NewLogger(w io.Writer) *Logger {
-	if w == nil {
-		w = os.Stdout
-	}
-	return &Logger{w: w}
-}
-
-// NewFileLogger opens (or creates) a file at path and returns a Logger
-// that appends audit entries to it.
+	return &Logger{w: NewFileLogger opens (or creates) a file at path and returns a Logger for it.
 func NewFileLogger(path string) (*Logger, error) {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	if err != nil {
-		return nil, fmt.Errorf("audit: open log file: %w", err)
+		return nil, err
 	}
-	return &Logger{w: f}, nil
+	return NewLogger(f), nil
 }
 
-// Record serialises an Entry as a single JSON line.
+// Record writes the entry to the underlying writer as a JSON line.
+// If Timestamp is zero it is set to the current UTC time.
 func (l *Logger) Record(e Entry) error {
 	if e.Timestamp.IsZero() {
 		e.Timestamp = time.Now().UTC()
 	}
-	b, err := json.Marshal(e)
-	if err != nil {
-		return fmt.Errorf("audit: marshal entry: %w", err)
+	enc := json.NewEncoder(l.w)
+	return enc.Encode(e)
+}
+
+// ReadEntries decodes newline-delimited JSON entries from r.
+func ReadEntries(r io.Reader) ([]Entry, error) {
+	var entries []Entry
+	dec := json.NewDecoder(r)
+	for dec.More() {
+		var e Entry
+		if err := dec.Decode(&e); err != nil {
+			return nil, err
+		}
+		entries = append(entries, e)
 	}
-	_, err = fmt.Fprintf(l.w, "%s\n", b)
-	return err
+	return entries, nil
 }
