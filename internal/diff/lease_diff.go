@@ -18,6 +18,7 @@ type LeaseChange struct {
 }
 
 // CompareLeases diffs two LeaseInfo snapshots and returns a list of changes.
+// Returns nil if either snapshot is nil.
 func CompareLeases(old, current *vault.LeaseInfo) []LeaseChange {
 	if old == nil || current == nil {
 		return nil
@@ -70,6 +71,17 @@ func FprintLeaseDiff(w io.Writer, changes []LeaseChange) {
 	for _, c := range changes {
 		fmt.Fprintf(w, "  [%s] %s: %v -> %v\n", c.LeaseID, c.Field, c.OldValue, c.NewValue)
 	}
+}
+
+// FilterChangesByField returns only the changes that match the given field name.
+func FilterChangesByField(changes []LeaseChange, field string) []LeaseChange {
+	var filtered []LeaseChange
+	for _, c := range changes {
+		if c.Field == field {
+			filtered = append(filtered, c)
+		}
+	}
+	return filtered
 }
 
 func formatTime(t time.Time) string {
