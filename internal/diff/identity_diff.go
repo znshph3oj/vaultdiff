@@ -9,12 +9,15 @@ import (
 	"github.com/yourusername/vaultdiff/internal/vault"
 )
 
+// IdentityChange represents a single field-level difference between two identity entities.
 type IdentityChange struct {
 	Field    string
 	OldValue string
 	NewValue string
 }
 
+// CompareIdentity returns a list of field-level changes between two IdentityEntity values.
+// Returns nil if either input is nil.
 func CompareIdentity(a, b *vault.IdentityEntity) []IdentityChange {
 	if a == nil || b == nil {
 		return nil
@@ -47,6 +50,7 @@ func CompareIdentity(a, b *vault.IdentityEntity) []IdentityChange {
 	return changes
 }
 
+// sliceToSet converts a string slice into a set represented as a map.
 func sliceToSet(s []string) map[string]bool {
 	m := make(map[string]bool, len(s))
 	for _, v := range s {
@@ -55,10 +59,12 @@ func sliceToSet(s []string) map[string]bool {
 	return m
 }
 
+// PrintIdentityDiff prints a human-readable diff of two identity entities to stdout.
 func PrintIdentityDiff(a, b *vault.IdentityEntity) {
 	FprintIdentityDiff(os.Stdout, a, b)
 }
 
+// FprintIdentityDiff writes a human-readable diff of two identity entities to w.
 func FprintIdentityDiff(w io.Writer, a, b *vault.IdentityEntity) {
 	changes := CompareIdentity(a, b)
 	if len(changes) == 0 {
