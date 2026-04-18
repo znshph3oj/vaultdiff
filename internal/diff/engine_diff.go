@@ -56,6 +56,18 @@ func CompareEngines(before, after []vault.EngineInfo) []EngineDiffEntry {
 	return entries
 }
 
+// FilterByStatus returns only the diff entries matching the given status.
+// Valid statuses are "added", "removed", and "modified".
+func FilterByStatus(entries []EngineDiffEntry, status string) []EngineDiffEntry {
+	var filtered []EngineDiffEntry
+	for _, e := range entries {
+		if e.Status == status {
+			filtered = append(filtered, e)
+		}
+	}
+	return filtered
+}
+
 // PrintEngineDiff writes a human-readable engine diff to stdout.
 func PrintEngineDiff(entries []EngineDiffEntry) {
 	FprintEngineDiff(os.Stdout, entries)
