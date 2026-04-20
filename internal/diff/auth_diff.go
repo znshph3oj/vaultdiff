@@ -17,6 +17,7 @@ type AuthChange struct {
 }
 
 // CompareAuth returns a list of changes between two AuthInfo values.
+// Returns an empty slice if either argument is nil.
 func CompareAuth(a, b *vault.AuthInfo) []AuthChange {
 	var changes []AuthChange
 
@@ -61,6 +62,13 @@ func CompareAuth(a, b *vault.AuthInfo) []AuthChange {
 	}
 
 	return changes
+}
+
+// HasAuthChanges returns true if CompareAuth finds any differences between a and b.
+// It is a convenience wrapper to avoid allocating and inspecting the full change list
+// when only a boolean result is needed.
+func HasAuthChanges(a, b *vault.AuthInfo) bool {
+	return len(CompareAuth(a, b)) > 0
 }
 
 // PrintAuthDiff prints auth differences to stdout.
