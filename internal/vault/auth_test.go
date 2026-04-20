@@ -75,3 +75,29 @@ func TestGetAuthInfo_UnexpectedStatus(t *testing.T) {
 		t.Fatal("expected error for unexpected status")
 	}
 }
+
+func TestGetAuthInfo_EmptyPolicies(t *testing.T) {
+	body := map[string]interface{}{
+		"data": map[string]interface{}{
+			"accessor":     "xyz789",
+			"display_name": "token-minimal",
+			"policies":     []string{},
+			"ttl":          300,
+			"renewable":    false,
+		},
+	}
+	srv := authServer(t, http.StatusOK, body)
+	defer srv.Close()
+
+	c := &Client{Address: srv.URL, Token: "test-token", HTTP: srv.Client()}
+	info, err := c.GetAuthInfo()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(info.Policies) != 0 {
+		t.Errorf("expected 0 policies, got %d", len(info.Policies))
+	}
+	if info.Renewable {
+		t.Error("expected renewable to be false")
+	}
+}
