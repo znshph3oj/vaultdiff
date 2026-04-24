@@ -10,6 +10,8 @@ import (
 	"github.com/your-org/vaultdiff/internal/vault"
 )
 
+// engineServer creates a test HTTP server that responds with the given status
+// code and JSON-encoded body for all requests.
 func engineServer(t *testing.T, status int, body interface{}) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -82,5 +84,23 @@ func TestListEngines_UnexpectedStatus(t *testing.T) {
 	_, err = c.ListEngines(context.Background())
 	if err == nil {
 		t.Fatal("expected error for 500, got nil")
+	}
+}
+
+func TestListEngines_Empty(t *testing.T) {
+	srv := engineServer(t, http.StatusOK, map[string]interface{}{})
+	defer srv.Close()
+
+	c, err := vault.NewClient(srv.URL, "test-token", "")
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+
+	engines, err := c.ListEngines(context.Background())
+	if err != nil {
+		t.Fatalf("ListEngines: %v", err)
+	}
+	if len(engines) != 0 {
+		t.Fatalf("expected 0 engines, got %d", len(engines))
 	}
 }
