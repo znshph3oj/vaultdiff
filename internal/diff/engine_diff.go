@@ -68,6 +68,23 @@ func FilterByStatus(entries []EngineDiffEntry, status string) []EngineDiffEntry 
 	return filtered
 }
 
+// Summary returns a short string summarising the counts of added, removed,
+// and modified entries in the diff (e.g. "+2 -1 ~3").
+func Summary(entries []EngineDiffEntry) string {
+	var added, removed, modified int
+	for _, e := range entries {
+		switch e.Status {
+		case "added":
+			added++
+		case "removed":
+			removed++
+		case "modified":
+			modified++
+		}
+	}
+	return fmt.Sprintf("+%d -%d ~%d", added, removed, modified)
+}
+
 // PrintEngineDiff writes a human-readable engine diff to stdout.
 func PrintEngineDiff(entries []EngineDiffEntry) {
 	FprintEngineDiff(os.Stdout, entries)
@@ -90,4 +107,5 @@ func FprintEngineDiff(w io.Writer, entries []EngineDiffEntry) {
 			fmt.Fprintf(w, "  ~ %s: %s -> %s\n", e.Path, e.Old.Type, e.New.Type)
 		}
 	}
+	fmt.Fprintf(w, "Summary: %s\n", Summary(entries))
 }
