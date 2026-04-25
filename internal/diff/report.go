@@ -63,3 +63,15 @@ func (r *Report) PrintSummary(w io.Writer) {
 	fmt.Fprintf(w, "Added: %d  Removed: %d  Modified: %d  Unchanged: %d\n",
 		r.Added, r.Removed, r.Modified, r.Unchanged)
 }
+
+// PrintChanges writes a human-readable list of all changed keys to w.
+// Unchanged keys are omitted for brevity. Each line shows the status
+// indicator and the key name.
+func (r *Report) PrintChanges(w io.Writer) {
+	for _, c := range r.Changes {
+		if c.Status == StatusUnchanged {
+			continue
+		}
+		fmt.Fprintf(w, "  [%s] %s\n", c.Status, c.Key)
+	}
+}
