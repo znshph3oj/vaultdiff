@@ -67,3 +67,14 @@ func TestGetLDAPRoleInfo_UnexpectedStatus(t *testing.T) {
 		t.Fatal("expected error, got nil")
 	}
 }
+
+func TestGetLDAPRoleInfo_EmptyRoleName(t *testing.T) {
+	srv := ldapServer(t, http.StatusOK, nil)
+	defer srv.Close()
+
+	client, _ := NewClient(srv.URL, "test-token", "")
+	_, err := GetLDAPRoleInfo(client, "ldap", "")
+	if err == nil {
+		t.Fatal("expected error for empty role name, got nil")
+	}
+}
